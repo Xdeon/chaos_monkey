@@ -338,11 +338,11 @@ supervision_state(Pid) ->
         %% from sys.erl
         {status, Pid, {module, _Mod},
          [_PDict, _SysState, _Parent, _Debug, FmtMisc]} ->
-            [_, _, {data, [{"State", State}]}] = FmtMisc,
+            [_, _, {data, [{"State", State}]}, _] = FmtMisc,
             %% From supervisor.erl but I already have a #state{} in
             %% this module so cannot copy the one from there
             {state, _Name, _Strategy, Children, _Dynamics, Intensity,
-             Period, _Restarts, _Module, _Args} = State,
+             Period, _Restarts, _DynamicRestarts, _Module, _Args} = State,
             ChildPids = [CPid || #child{pid = CPid} <- Children],
             {#node{pid = Pid,
                    type = supervisor,
@@ -532,27 +532,53 @@ is_supervisor(Pid) ->
 is_killable(Pid, App, AppFilter) ->
     is_killable(Pid, App, AppFilter, true).
 
-is_killable(Pid, App, AppFilter, IsSupervisorKillable)
-  when is_pid(Pid), is_atom(App), is_boolean(IsSupervisorKillable) ->
-    (App =:= undefined
-     orelse
-     case AppFilter of
-         all -> true;
-         all_but_otp -> not(lists:member(App, ?OTP_APPS));
-         Apps when is_list(Apps) -> lists:member(App, Apps)
-     end) 
-        andalso
-        not(lists:member(App, [kernel, chaos_monkey]))
-        andalso
-        not(pman_process:is_system_process(Pid))
-        andalso
-        not(is_shell(Pid))
-        andalso
-        not(Pid =:= self())
-        andalso
-        (not(IsSupervisorKillable)
-         orelse
-         not(is_supervisor(Pid))).
+% is_killable(Pid, App, AppFilter, IsSupervisorKillable)
+%   when is_pid(Pid), is_atom(App), is_boolean(IsSupervisorKillable) ->
+%     (App =:= undefined
+%      orelse
+%      case AppFilter of
+%          all -> true;
+%          all_but_otp -> not(lists:member(App, ?OTP_APPS));
+%          Apps when is_list(Apps) -> lists:member(App, Apps)
+%      end) 
+%         andalso
+%         not(lists:member(App, [kernel, chaos_monkey]))
+%         andalso
+%         not(pman_process:is_system_process(Pid))
+%         andalso
+%         not(is_shell(Pid))
+%         andalso
+%         not(Pid =:= self())
+%         andalso
+%         (not(IsSupervisorKillable)
+%          orelse
+%          not(is_supervisor(Pid))).
+
+is_killable(Pid, App, all, IsSupervisorKillable) ->
+    sanity_check(Pid, App, IsSupervisorKillable);
+is_killable(Pid, App, all_but_otp, IsSupervisorKillable) ->
+    case not(lists:member(App, ?OTP_APPS)) of
+        true -> sanity_check(Pid, App, IsSupervisorKillable);
+        false -> false
+    end;
+is_killable(Pid, App, AppFilter, IsSupervisorKillable) when is_list(AppFilter) ->
+    case lists:member(App, AppFilter) of
+        true -> sanity_check(Pid, App, IsSupervisorKillable);
+        false -> false
+    end.
+
+sanity_check(Pid, App, IsSupervisorKillable) ->
+  not(lists:member(App, [kernel, chaos_monkey]))
+  andalso
+  not(pman_process:is_system_process(Pid))
+  andalso
+  not(is_shell(Pid))
+  andalso
+  not(Pid =:= self())
+  andalso
+  (not(IsSupervisorKillable)
+   orelse
+   not(is_supervisor(Pid))).
 
 %% Theoretically pman_process:is_system_process/1 should say true for
 %% the shell.  Well, it doesn't, so this is a workaround until it
