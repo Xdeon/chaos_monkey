@@ -92,7 +92,7 @@ init([]) ->
                     exit(Error)
             end
     end,
-    random:seed(now()),
+    _ = rand:seed(exs1024),
     {ok, #state{}}.
 
 handle_call({on, Opts}, _From, State = #state{is_active = false}) ->
@@ -132,7 +132,7 @@ handle_info(kill_something, State = #state{avg_wait = AvgWait, apps = Apps}) ->
             p("Warning: no killable processes.", [])
     end,
     Var = 0.3, %% I.e. 70% to 130% of Waittime
-    WaitTime = round(AvgWait * ((1 - Var) + (Var * 2 * random:uniform()))),
+    WaitTime = round(AvgWait * ((1 - Var) + (Var * 2 * rand:uniform()))),
     {ok, Ref} = timer:send_after(WaitTime, kill_something),
     {noreply, State#state{timer_ref = Ref}};
 handle_info(Info, State) ->
@@ -252,7 +252,7 @@ verify_opts(Opts) ->
     end.
 
 randomize(Xs) ->
-    [V || {_, V} <- lists:sort([{random:uniform(), X} || X <- Xs])].
+    [V || {_, V} <- lists:sort([{rand:uniform(), X} || X <- Xs])].
 
 %% random(L) ->
 %%     lists:nth(random:uniform(length(L)), L).

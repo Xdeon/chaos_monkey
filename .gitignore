@@ -1,2 +1,12 @@
-ebin
-.emacs.desktop
+.eunit
+deps
+*.d
+*.o
+*.beam
+*.plt
+erl_crash.dump
+ebin/
+rel/example_project
+.concrete/DEV_MODE
+.rebar
+.erlang.mk
