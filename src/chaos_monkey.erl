@@ -70,7 +70,7 @@ off() ->
 %% START OF GEN_SERVER CALLBACKS
 
 init([]) ->
-    case application:get_env(auto_start) of
+    _ = case application:get_env(auto_start) of
         undefined ->
             ok;
         {ok, false} ->
@@ -107,7 +107,7 @@ handle_call({on, Opts}, _From, State = #state{is_active = false}) ->
             {reply, {error, Error}, State}
     end;
 handle_call(off, _From, State = #state{is_active = true, timer_ref = Ref}) ->
-    timer:cancel(Ref),
+    _ = timer:cancel(Ref),
     receive kill_something -> ok
     after 0 -> ok
     end,
@@ -276,7 +276,7 @@ app_killer(App, Pids) ->
                 p("There are processes in ~s which don't belong to a "
                   "supervision tree.  The Chaos Monkey stomps on them.",
                   [App]),
-                [kill(Pid) || Pid <- Orphans],
+                _ = [kill(Pid) || Pid <- Orphans],
                 length(Orphans)
         end,
     {RealTree, KilledTrees} =
@@ -467,9 +467,9 @@ p(Format, Data) ->
     MFAInfo = hd(tl(Stacktrace)),
     String =
         case MFAInfo of
-            {M, F, A} ->
-                format_single_line("~p ~p:~p/~p " ++ Format,
-                                   [self(), M, F, A | Data]);
+            % {M, F, A} ->
+            %     format_single_line("~p ~p:~p/~p " ++ Format,
+            %                        [self(), M, F, A | Data]);
             {M, F, A, Info} ->
                 case lists:keysearch(line, 1, Info) of
                     {value, {line, Line}} ->

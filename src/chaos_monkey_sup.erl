@@ -14,11 +14,7 @@
 start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
-mk_spec(Type, Module, Args) ->
-    Timeout = case Type of
-                  worker -> 5000;
-                  supervisor -> infinity
-              end,
+mk_spec(Type, Module, Args, Timeout) ->
     {Module,
      {Module, start_link, Args},
      permanent,
@@ -27,5 +23,5 @@ mk_spec(Type, Module, Args) ->
      [Module]}.
 
 init([]) ->
-    Children = [mk_spec(worker, chaos_monkey, [])],
+    Children = [mk_spec(worker, chaos_monkey, [], 5000)],
     {ok, {{one_for_one, 5, 10}, Children}}.
