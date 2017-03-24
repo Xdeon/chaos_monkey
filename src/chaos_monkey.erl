@@ -17,6 +17,8 @@
          on/0,
          on/1]).
 
+% -compile([export_all]).
+
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
@@ -557,15 +559,9 @@ is_killable(Pid, App, AppFilter) ->
 is_killable(Pid, App, all, IsSupervisorKillable) ->
     sanity_check(Pid, App, IsSupervisorKillable);
 is_killable(Pid, App, all_but_otp, IsSupervisorKillable) ->
-    case not(lists:member(App, ?OTP_APPS)) of
-        true -> sanity_check(Pid, App, IsSupervisorKillable);
-        false -> false
-    end;
+    not(lists:member(App, ?OTP_APPS)) andalso sanity_check(Pid, App, IsSupervisorKillable);
 is_killable(Pid, App, AppFilter, IsSupervisorKillable) when is_list(AppFilter) ->
-    case lists:member(App, AppFilter) of
-        true -> sanity_check(Pid, App, IsSupervisorKillable);
-        false -> false
-    end.
+    lists:member(App, AppFilter) andalso sanity_check(Pid, App, IsSupervisorKillable).
 
 sanity_check(Pid, App, IsSupervisorKillable) ->
   not(lists:member(App, [kernel, chaos_monkey]))
