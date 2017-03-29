@@ -128,10 +128,12 @@ handle_cast(_Msg, State) ->
 
 handle_info(kill_something, State = #state{avg_wait = AvgWait, apps = Apps}) ->
     case do_kill(Apps) of
-        {ok, KilledInfo} ->
-            p("Killed ~p", [KilledInfo]);
+        {ok, _KilledInfo} ->
+            % p("Killed ~p", [KilledInfo]);
+            ok;
         {error, no_killable_processes} ->
-            p("Warning: no killable processes.", [])
+            % p("Warning: no killable processes.", [])
+            ok
     end,
     Var = 0.3, %% I.e. 70% to 130% of Waittime
     WaitTime = round(AvgWait * ((1 - Var) + (Var * 2 * rand:uniform()))),
