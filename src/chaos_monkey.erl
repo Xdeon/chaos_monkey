@@ -129,10 +129,10 @@ handle_cast(_Msg, State) ->
 handle_info(kill_something, State = #state{avg_wait = AvgWait, apps = Apps}) ->
     case do_kill(Apps) of
         {ok, _KilledInfo} ->
-            % p("Killed ~p", [KilledInfo]);
+            % p("Killed ~p", [KilledInfo]),
             ok;
         {error, no_killable_processes} ->
-            % p("Warning: no killable processes.", [])
+            % p("Warning: no killable processes.", []),
             ok
     end,
     Var = 0.3, %% I.e. 70% to 130% of Waittime
@@ -204,7 +204,7 @@ do_almost_kill(AppFilter) ->
 do_find_orphans() ->
     Ps = [{P,
            application:get_application(P),
-           pman_process:is_system_process(P)}
+           (pman_process:is_system_process(P) or erts_internal:is_system_process(P))}
           || P <- erlang:processes()],
     lists:zf(fun({P, undefined, false}) ->
                      case is_shell(P) of
@@ -451,6 +451,7 @@ kill_one([Pid | Pids], AppFilter) ->
 kill(Pid) ->
     erlang:monitor(process, Pid),
     exit(Pid, im_killing_you),
+    % exit(Pid, {error,{0, chaos_monkey, im_killing_you}}),
     receive
         {'DOWN', _, process, Pid, Reason} ->
             Reason
@@ -462,12 +463,21 @@ kill(Pid) ->
             end
     end.
 
+% format_error(What) ->
+%   What.
+
 %% END OF AUXILIARY FUNCTIONS
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% START OF FORMATTING FUNCTIONS
 
 p(Format, Data) ->
-    catch throw(get_stacktrace), Stacktrace = erlang:get_stacktrace(),
+    % catch throw(get_stacktrace), Stacktrace = erlang:get_stacktrace(),
+    Stacktrace = try
+                      throw(get_stacktrace)
+                 catch
+                      _:get_stacktrace ->
+                          erlang:get_stacktrace()
+                 end,
     MFAInfo = hd(tl(Stacktrace)),
     String =
         case MFAInfo of
@@ -568,7 +578,7 @@ is_killable(Pid, App, AppFilter, IsSupervisorKillable) when is_list(AppFilter) -
 sanity_check(Pid, App, IsSupervisorKillable) ->
   not(lists:member(App, [kernel, chaos_monkey]))
   andalso
-  not(pman_process:is_system_process(Pid))
+  not(pman_process:is_system_process(Pid) or erts_internal:is_system_process(Pid))
   andalso
   not(is_shell(Pid))
   andalso
